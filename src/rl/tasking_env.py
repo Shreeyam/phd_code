@@ -11,21 +11,47 @@ from OpenGL.GLU import *
 import pywavefront
 
 class TaskingEnv(gym.Env):
-    def __init__(self, field_of_regard=30, dt=0.1, umax = 0.1, x0 = torch.tensor([0, 0, 0, 1, 0, 0, 0])):
+    def __init__(self, h = 400, field_of_regard=30, dt=0.1, umax = 0.1, x0 = torch.tensor([0, 0, 0, 1, 0, 0, 0])):
         
         self.x = x0
-
+        self.dt = dt
+        self.t = 0
+        self.h = h
         # Next to set up environment with task density...
         # Start with just one task...
-        tasks = [torch.tensor([5, 0])]
+        self.tasks = [torch.tensor([5, 0])]
+        self.tasks_covered = [False]
 
         # Define action and observation spaces
+
+        # Calculate angular movement rate
+
+        
+        self.window = None
+        self._init_pygame()
+
+    def _init_pygame(self):
+        display = (640, 480)
+        pygame.init()
+        pygame.display.init()
+        self.window = pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
+        gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
+        gluLookAt(10.0, 10.0, 10.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0)
+        self.model = pywavefront.Wavefront('../assets/cubesat_model.obj', collect_faces=True)
+
 
     def step(self, action): 
         # Split torques and cameras...
         t, c = torch.split(action, 3, dim=0)
+        
+        # Update state
+        self.x += xdot(self.x, t) * self.dt 
+        self.t += self.dt
+
+        print(self.x)
+
         # observation, reward, terminated, truncated, info
-        return self.__get_obs(), self.__get_reward(), False, {}
+        return # self.__get_obs(), self.__get_reward(), False, {}
 
     def reset(self):
         pass    
@@ -42,30 +68,11 @@ class TaskingEnv(gym.Env):
     
 
     def _render_pygame(self):
-        pygame.init()
-        display = (640, 480)
-        screen = pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
-        gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
-        gluLookAt(10.0, 10.0, 10.0,  # Camera position
-              0.0, 0.0, 0.0,     # Look at this point
-              0.0, 1.0, 0.0)     # Up vector
-        self.model = pywavefront.Wavefront('../assets/cubesat_model.obj', collect_faces=True)
-
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-            self._setup_lighting()
-
-            self._draw_model()
-            # self._draw_points()
-            pygame.display.flip()
-            pygame.time.wait(10)
-
-        pygame.quit()
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        self._setup_lighting()
+        self._draw_model()
+        pygame.display.flip()
+        pygame.time.delay(10)
 
     def _draw_model(self):
         q = self.x[3:7]
@@ -104,4 +111,6 @@ class TaskingEnv(gym.Env):
         glMaterialf(GL_FRONT, GL_SHININESS, 10.0)
 
     def close(self):    
-        pass
+        if self.window is not None:
+            pygame.display.quit()
+            pygame.quit()
