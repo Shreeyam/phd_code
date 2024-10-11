@@ -1,1 +1,8 @@
-u
+numpy
+matplotlib
+torch
+scienceplots
+tensorboard
+gymnasium
+tqdm
+rasterio
