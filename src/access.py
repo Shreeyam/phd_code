@@ -1,6 +1,7 @@
 import numpy as np
 import datetime
 import itertools
+from tqdm import tqdm
 
 from collections import namedtuple
 from orbits import *
@@ -59,20 +60,20 @@ def multi_async_dispatch_search(requests, req_latlongs, field_of_regard, t0_s, t
     
     return task_times_1 + task_times_2
 
-def get_total_tasks(requests, orbit, t_coarse, field_of_regard, t0):
+def get_accesses(requests, orbit, t_coarse, field_of_regard, t0, t_end):
     h = orbit.a - Constants.R_E # assume circular orbit
     v = v_orb(h)
     theta = np.arctan((h * np.tan(np.deg2rad(field_of_regard))) / Constants.R_E) # Max possible lateral angle
     theta_total = theta + np.deg2rad((Constants.gamma / (24 * 3600)) * t_coarse) # Worst case Earth rotation
     filter_radius = np.sqrt((v * t_coarse/2)**2 + (h + Constants.R_E * (1 - np.cos(theta_total)))**2 + (Constants.R_E * np.sin(theta_total))**2)
 
-    seconds_since_epoch = (t0 - Constants.J2000).total_seconds()
+    seconds_since_epoch = 0 #(t0 - Constants.J2000).total_seconds()
 
     total_tasks = []
     req_latlongs = np.array([[x.lat, x.long] for x in requests])
 
     r1, v1 = kepler2eci(propagate_orbit(orbit, seconds_since_epoch))
-    for i in range(0, int(7 * 24 * 3600) - t_coarse, t_coarse):
+    for i in range(0, int((t_end - t0).total_seconds()) - t_coarse, t_coarse):
         t1 = seconds_since_epoch + i
         t2 = seconds_since_epoch + i + t_coarse
         

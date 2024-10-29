@@ -164,3 +164,56 @@ def propagate_orbit(orbit: Keplerian, time: float):
 
 def v_orb(h):
     return np.sqrt(Constants.mu / (h + Constants.R_E))
+
+def horizon_distance(elements):
+    return np.sqrt((elements.a)**2 - Constants.R_E**2)
+
+def intersect_ray_sphere(P, u, x0, r):
+    """
+    Determines the intersections of a ray with a sphere.
+    
+    Parameters:
+    P (numpy array): The starting point of the ray (3D vector).
+    u (numpy array): The direction of the ray (3D vector).
+    x0 (numpy array): The center of the sphere (3D vector).
+    r (float): The radius of the sphere.
+    
+    Returns:
+    t1, t2 (float, float): The parameter values at which the intersections occur.
+    None if there are no intersections.
+    """
+    # Normalize direction vector
+    u = u / np.linalg.norm(u)
+    
+    # Compute coefficients of the quadratic equation
+    A = np.dot(u, u)
+    B = 2 * np.dot(u, P - x0)
+    C = np.dot(P - x0, P - x0) - r**2
+    
+    # Compute the discriminant
+    discriminant = B**2 - 4*A*C
+    
+    if discriminant < 0:
+        # No intersection
+        return None
+    elif discriminant == 0:
+        # One intersection (tangent)
+        t = -B / (2*A)
+        return (P + t * u,)
+    else:
+        # Two intersections
+        sqrt_disc = np.sqrt(discriminant)
+        t1 = (-B + sqrt_disc) / (2*A)
+        t2 = (-B - sqrt_disc) / (2*A)
+        return (P + t1 * u, P + t2 * u, t1, t2)
+    
+def earth_line_intersection(P, u):
+    p = intersect_ray_sphere(P, u, np.array([0, 0, 0]), Constants.R_E)
+    if(p is None):
+        return p
+    else:
+        p1, p2, t1, t2 = p
+        if(t1 < 0 and t2 < 0):
+            return (p1, p2)
+        else:
+            return None
