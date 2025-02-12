@@ -8,7 +8,7 @@ J2000 = datetime.datetime(2000, 1, 1, 12, 0, 0)
 ERA_J2000 = 280.46
 gamma=360.9856123035484
 
-def lat2long2ecef(latlong):
+def latlong2ecef(latlong):
     lat_deg, lon_deg = latlong
     lat_rad = np.rad2deg(lat_deg)
     lon_rad = np.rad2deg(lon_deg)
@@ -33,7 +33,7 @@ def ecef2eci(ecef, time):
 
 # Generate tasks in lat/long coordinates
 task = np.array([0, 51.6]) # Latitude, Longitude
-task_ecef = lat2long2ecef(task)
+task_ecef = latlong2ecef(task)
 task_eci = ecef2eci(task_ecef, datetime.datetime.now())
 print(task_eci)
 
@@ -88,7 +88,7 @@ t_now = datetime.datetime.now()
 orbit = propagate_orbit(circular_orbit(a=R_E+400, i=np.deg2rad(45), Omega=0, M=0), (t_now - J2000).total_seconds())
 task = np.array([0, 51.6]) # Latitude, Longitude
 
-task_eci = ecef2eci(lat2long2ecef(task), t_now)
+task_eci = ecef2eci(latlong2ecef(task), t_now)
 orbit_eci = kepler2eci(orbit)
 
 from matplotlib import animation
@@ -107,7 +107,7 @@ z = R_E * np.outer(np.ones(np.size(u)), np.cos(v))
 ax.plot_surface(x, y, z, color='b', alpha=0.3)
 
 # Plot task on the surface of the Earth (this doesn't change over time)
-task_eci = ecef2eci(lat2long2ecef(task), t_now)
+task_eci = ecef2eci(latlong2ecef(task), t_now)
 task_point = ax.scatter(task_eci[0], task_eci[1], task_eci[2], color='r', s=100, label="Task")
 
 # Set labels and plot parameters

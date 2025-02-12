@@ -1,8 +1,10 @@
 import numpy as np
+from orbits import *
 from rotations import *
 
+# Origin at bottom left corner
 def get_intrinsics(f, c_x, c_y):
-    K = np.hstack([np.array([f, 0, c_x, 0, f, c_y, 0, 0, 1]).reshape(3,3), np.zeros((3,1))])
+    K = np.hstack([np.array([-f, 0, c_x, 0, f, c_y, 0, 0, 1]).reshape(3,3), np.zeros((3,1))])
     return K
 
 def get_extrinsics(R_t, p):
@@ -18,26 +20,21 @@ def get_extrinsics(R_t, p):
 def get_camera_matrix(K, R, p):
     return K @ get_extrinsics(R, p)
 
-def project(P, points, z_clip=True):
-    # Project points to image plane
-    points = np.concatenate((points, np.ones((points.shape[0], 1))), axis=1)
-    points = (P @ points.T).T
+def project_from_orbit(points, orbit, time, roll_angle=0):
+    width = 800
+    height = 600
+    r, v = kepler2eci(propagate_orbit(orbit, time))
+    K = get_intrinsics(300, width//2, height//2)
+    # Figure out the quaternion pointing to nadir
+    v_unit = v / np.linalg.norm(v)
+    r_unit = r / np.linalg.norm(r)
 
-    # Clip all points with z < 0
-    if(z_clip):
-        points = points[points[:, 2] > 0]
-
-    points = points / points[:, [2]]
-    points = points[:, 0:2]
-
-    return points
-
-# todo: review this function...
-def unproject(P, points):
-    # Unproject points to 3D space
-    points = np.concatenate((points, np.ones((points.shape[0], 1))), axis=1)
-    points = points @ np.linalg.inv(P.T)
-    points = points / points[:, 3:]
-    points = points[:, :3]
-
-    return points
+    R_t = rotation_matrix(r_unit, -v_unit)
+    R_q = eul2R(0, np.deg2rad(roll_angle), np.deg2rad(15))
+    R_t = R_t @ R_q
+    R_t = np.linalg.inv(R_t)
+    R_t = R_t[[2, 1, 0], :]
+    P = get_camera_matrix(K, R_t, r)
+    projected_points = project(P, points, False)
+    # projected_points[:, 0] = width - projected_points[:, 0]
+    return projected_points

@@ -8,13 +8,35 @@ from orbits import *
 from vector import *
 from spacecraft import *
 
-request = namedtuple('Request', ['id', 'lat', 'long', 'name'])
-task = namedtuple('Task', ['requestid', 'lat', 'long', 'name', 'time', 'angle'])
+class Request:
+    def __init__(self, id, lat, long, name, utility=1):
+        self.id = id
+        self.lat = lat
+        self.long = long
+        self.name = name
+        self.utility = utility
 
-class Scenario:
-    def __init__(self, requests, spacecraft):
-        self.requests = requests
-        self.spacecraft = spacecraft    
+    def __repr__(self):
+        return f"Request({self.id}, {self.lat}, {self.long}, {self.name}, {self.utility})"
+
+class Access:
+    def __init__(self, request, time, angle, state=None, utility=None):
+        self.request = request
+        self.requestid = request.id
+        self.lat = self.request.lat
+        self.long = self.request.long
+        self.name = self.request.name
+        self.time = time
+        self.angle = angle
+        self.state = state
+
+        if(utility is not None):
+            self.utility = utility
+        else:
+            self.utility = self.request.utility
+
+    def __repr__(self):
+        return f"Access({self.requestid}, {self.lat}, {self.long}, {self.name}, {self.time}, {self.angle}, {self.state}, {self.utility})"
 
 def multi_async_dispatch_search(requests, req_latlongs, field_of_regard, t0_s, t0, t1, t2, r1, r2, d1, d2, orbit):
     t3 = (t1 + t2) / 2
@@ -24,14 +46,14 @@ def multi_async_dispatch_search(requests, req_latlongs, field_of_regard, t0_s, t
         for i, x in enumerate(requests):
             # Check access constraints...
             # Propagate to position
-            task_eci = ecef2eci(lat2long2ecef((x.lat, x.long)), t0 + datetime.timedelta(seconds=t3 - t0_s))
+            task_eci = ecef2eci(latlong2ecef((x.lat, x.long)), t0 + datetime.timedelta(seconds=t3 - t0_s))
             r, v = kepler2eci(propagate_orbit(orbit, t1))
             # Compute the angle using dot product
             angle_diff = np.arccos(np.dot(r, r - task_eci) / (np.linalg.norm(r) * np.linalg.norm(task_eci - r)))
             sign = np.sign(dist2plane(r, np.cross(r, v), task_eci))   
             angle_diff = np.rad2deg(angle_diff) * sign
-            if(np.abs(angle_diff) < field_of_regard):
-                tasks.append(task(x.id, x.lat, x.long, x.name, t0 + datetime.timedelta(seconds=t3 - t0_s), angle_diff))
+            if(np.abs(angle_diff) < field_of_regard and task_not_in_eclipse(t0 + datetime.timedelta(seconds=t3 - t0_s), r)):
+                tasks.append(Access(x, t0 + datetime.timedelta(seconds=t3 - t0_s), angle_diff))
         
         return tasks
     
@@ -106,3 +128,7 @@ def get_accesses(requests, orbit, t_coarse, field_of_regard, t0, t_end):
         r1 = r2
         v1 = v2
     return total_tasks
+
+def task_not_in_eclipse(time, r):
+    sun_vector = sunvec_eci(time)
+    return np.dot(r, sun_vector) > 0

@@ -1,9 +1,11 @@
 import numpy as np
+import datetime
 from constants import Constants
 from collections import namedtuple
 from rotations import *
+from typing import Union
 
-def lat2long2ecef(latlong):
+def latlong2ecef(latlong):
     lat_deg, lon_deg = latlong
     lat_rad = np.deg2rad(lat_deg)
     lon_rad = np.deg2rad(lon_deg)
@@ -81,23 +83,32 @@ def latlong2ecef_vec(latlong):
     
     return ecef
 
+def latlong2eci(lat, long, time):    
+    # Convert latlong to ECEF coordinates
+    ecef = latlong2ecef((lat, long))
+    
+    # Convert ECEF to ECI coordinates
+    eci = ecef2eci(ecef, time)
+    
+    return eci
+
 # Calculate the vector pointing to the sun in the ECI frame
 def sunvec_eci(time):
     time_difference = time - Constants.J2000
     d = time_difference.total_seconds() / (24 * 60 * 60) 
-    L = 280.4606184 + [(36000.77005361 / 36525) * d] # mean longitude
-    g = 357.5277233 + ([35999.05034 / 36525] * d) # mean anomaly
-    p = L + [1.914666471 * np.sin(g * np.pi / 180)] + [0.918994643 * np.sin(2*g * np.pi / 180)] # ecliptic longitude lambda
+    L = 280.4606184 + ((36000.77005361 / 36525) * d) # mean longitude
+    g = 357.5277233 + ((35999.05034 / 36525) * d) # mean anomaly
+    p = L + (1.914666471 * np.sin(g * np.pi / 180)) + (0.918994643 * np.sin(2*g * np.pi / 180)) # ecliptic longitude lambda
     q = 23.43929 - ((46.8093/3600) * (d / 36525)) # obliquity of the ecliptic plane epsilon
-    return np.array([np.cos(p * np.pi / 180), np.cos(q * np.pi / 180) * np.sin(p * np.pi / 180), np.sin(q * np.pi / 180) * np.sin(p * np.pi / 180)])
+    return np.array((np.cos(p * np.pi / 180), np.cos(q * np.pi / 180) * np.sin(p * np.pi / 180), np.sin(q * np.pi / 180) * np.sin(p * np.pi / 180)))
 
 
 # Define a namedtuple for Keplerian elements
-Keplerian = namedtuple('Keplerian', ['a', 'e', 'i', 'omega', 'Omega', 'M'])
+Keplerian = namedtuple('Keplerian', ['a', 'e', 'i', 'omega', 'Omega', 'M', 't'])
 
 # Six keplerian elements: a, e, i, omega, Omega, M
-def kepler2eci(elements: tuple) -> tuple:
-    a, e, i, omega, Omega, M = elements
+def kepler2eci(elements: Keplerian) -> tuple:
+    a, e, i, omega, Omega, M, t = elements
     mu = Constants.mu
     nu = None
     r = None
@@ -152,15 +163,20 @@ def kepler2eci(elements: tuple) -> tuple:
     return r_eci, v_eci
 
 # Generate a circular orbit
-def circular_orbit(a: float, i: float, Omega: float, M: float):
-    return Keplerian(a, 0, i, 0, Omega, M)
+def circular_orbit(a: float, i: float, Omega: float, M: float, t: datetime) -> Keplerian:
+    return Keplerian(a, 0, i, 0, Omega, M, t)
 
-def propagate_orbit(orbit: Keplerian, time: float):
+def propagate_orbit(orbit: Keplerian, time: Union[float, datetime.datetime, datetime.timedelta]) -> Keplerian:
     mu = Constants.mu
-    a, e, i, omega, Omega, M = orbit
+    a, e, i, omega, Omega, M, t = orbit
     n = np.sqrt(mu / a**3)
+    if(isinstance(time, datetime.timedelta)):
+        time = time.total_seconds()
+    elif(isinstance(time, datetime.datetime)):
+        time = (time - t).total_seconds()
+    
     M_new = M + n * time
-    return Keplerian(a, e, i, omega, Omega, M_new)
+    return Keplerian(a, e, i, omega, Omega, M_new, t + datetime.timedelta(seconds=time))
 
 def v_orb(h):
     return np.sqrt(Constants.mu / (h + Constants.R_E))
@@ -217,3 +233,18 @@ def earth_line_intersection(P, u):
             return (p1, p2)
         else:
             return None
+        
+def split_orbit_track(latlongs, threshold=180):
+    lat, long = np.array(latlongs)[:, 0], np.array(latlongs)[:, 1]
+    # Calculate the difference between consecutive longitudes
+    delta_long = np.abs(np.diff(long))
+    
+    # Identify where the jump exceeds the threshold
+    jump_indices = np.where(delta_long > threshold)[0] + 1
+    
+    # Split the data at the jump indices
+    segments = np.split(latlongs, jump_indices)
+    return segments
+
+def kepler2latlong(orbit: Keplerian, time):
+    return ecef2latlong(eci2ecef(kepler2eci(propagate_orbit(orbit, (time - orbit.t).total_seconds()))[0], time))

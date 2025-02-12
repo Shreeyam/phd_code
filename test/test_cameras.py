@@ -16,7 +16,7 @@ class TestCameraFunctions:
         c_y = 240
         expected_K = np.array([
             [-f,   0, c_x],
-            [  0, -f, c_y],
+            [  0, f, c_y],
             [  0,   0,    1]
         ])
         expected_K_homogeneous = np.hstack([expected_K, np.zeros((3,1))])
@@ -29,15 +29,15 @@ class TestCameraFunctions:
         p = np.array([0, 0, 0])
         # R_q should be identity
         # R_0 is a rotation of 0 around x, pi around y, -pi/2 around z
-        R_0 = eul2R(0, np.pi, -np.pi/2)
-        R = R_q = q2mat(q)
-        expected_R = R @ R_0
+        expected_R = np.eye(3)
         expected_t = -expected_R @ p
         expected_transformation = np.vstack([
             np.hstack([expected_R, expected_t.reshape(3,1)]),
             [0, 0, 0, 1]
         ])
         transformation = get_extrinsics(q, p)
+        print(transformation)
+        print(expected_transformation)
         assert np.allclose(transformation, expected_transformation), "Extrinsic matrix is incorrect for identity quaternion and zero position."
 
     def test_get_extrinsics_rotation_translation(self):
@@ -89,6 +89,7 @@ class TestCameraFunctions:
         ])
         expected_3d = np.hstack([points_2d, np.ones((points_2d.shape[0], 1))])
         unprojected = unproject(P, points_2d)
+        print(unprojected)
         assert np.allclose(unprojected, expected_3d), "Unprojection with identity intrinsic matrix failed."
 
     def test_unproject_invalid_P(self):

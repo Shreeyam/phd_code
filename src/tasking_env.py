@@ -23,6 +23,8 @@ class TaskingEnv(gym.Env):
         self.tasks_covered = [False]
 
         # Define action and observation spaces
+        self.action_space = spaces.Box(low=-umax, high=umax, shape=(6,))
+        self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(7,))
 
         # Calculate angular movement rate
 
