@@ -10,3 +10,9 @@ __pycache__/
 *.blend
 *.blend1
 *.gif
+*.zip
+*.nc
+*.grb
+.vscode/**
+./data/tmp/**
+*tfevents*
