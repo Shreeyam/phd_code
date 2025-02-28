@@ -1,0 +1,20 @@
+[build]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+[project]
+name = "dynamic_tasker"
+version = "0.1.0"
+description = "Codebase for my dynamic tasking PhD"
+readme = "README.md"                   # Optional: path to your README file
+authors = [
+  { name = "Shreeyam Kacker", email = "shreeyamkacker@gmail.com" }
+]
+dependencies = [
+    "numpy",
+    "matplotlib"
+]
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

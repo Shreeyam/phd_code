@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<informationPackage xmlns="http://www.eumetsat.int/sip">
+    <dataSection>
+        <dataObject ID="MSG2-SEVI-MSGCLMK-0100-0100-20250102113000.000000000Z-NA.grb">
+            <fileType>Data</fileType>
+            <format>GRIB2</format>
+            <size>3445185</size>
+            <path>MSG2-SEVI-MSGCLMK-0100-0100-20250102113000.000000000Z-NA.grb</path>
+        </dataObject>
+    </dataSection>
+    <eopmetadataSection>
+        <path>EOPMetadata.xml</path>
+    </eopmetadataSection>
+</informationPackage>

@@ -89,3 +89,55 @@ def eul2R(roll, pitch, yaw):
     R = R_z @ (R_y @ R_x)
     
     return R
+
+def rotmat_from_vec(a: np.ndarray, b: np.ndarray) -> np.ndarray:
+    """
+    Computes the rotation matrix that rotates the standard basis vectors
+    x = [1, 0, 0] and y = [0, 1, 0] to the provided orthogonal vectors a and b.
+
+    Parameters:
+    a (np.ndarray): The target vector for the x-axis (should be a 3-element array).
+    b (np.ndarray): The target vector for the y-axis (should be a 3-element array).
+
+    Returns:
+    np.ndarray: A 3x3 rotation matrix.
+    
+    Raises:
+    ValueError: If the input vectors are not 3-dimensional or not orthogonal.
+    """
+    # Ensure input vectors are numpy arrays
+    a = np.asarray(a, dtype=float)
+    b = np.asarray(b, dtype=float)
+    
+    # Check if vectors are 3-dimensional
+    if a.shape != (3,) or b.shape != (3,):
+        raise ValueError("Input vectors must be three-dimensional.")
+    
+    # Normalize the vectors
+    a_norm = np.linalg.norm(a)
+    b_norm = np.linalg.norm(b)
+    
+    if a_norm == 0 or b_norm == 0:
+        raise ValueError("Input vectors must be non-zero.")
+    
+    a_unit = a / a_norm
+    b_unit = b / b_norm
+    
+    # Check orthogonality
+    dot_product = np.dot(a_unit, b_unit)
+    if not np.isclose(dot_product, 0.0, atol=1e-8):
+        raise ValueError("Input vectors must be orthogonal.")
+    
+    # Compute the third orthogonal vector using cross product
+    c_unit = np.cross(a_unit, b_unit)
+    
+    # Form the rotation matrix with a_unit, b_unit, c_unit as columns
+    R = np.column_stack((a_unit, b_unit, c_unit))
+    
+    # Verify that R is a valid rotation matrix
+    if not np.allclose(np.dot(R, R.T), np.identity(3), atol=1e-8):
+        raise ValueError("Resulting matrix is not orthogonal.")
+    if not np.isclose(np.linalg.det(R), 1.0, atol=1e-8):
+        raise ValueError("Resulting matrix does not have a determinant of +1.")
+    
+    return R

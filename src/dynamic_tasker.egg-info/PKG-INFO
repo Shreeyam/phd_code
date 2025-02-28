@@ -1,0 +1,9 @@
+Metadata-Version: 2.2
+Name: dynamic_tasker
+Version: 0.1.0
+Summary: Codebase for my dynamic tasking PhD
+Author-email: Shreeyam Kacker <shreeyamkacker@gmail.com>
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: matplotlib

@@ -133,9 +133,9 @@ def get_auth_token_meteosat():
     url = "https://api.eumetsat.int/token"
     # TODO: don't commit the keys...
     # TODO: use environment variables
-    key = ""
-    secret = ""
-    
+    key = "PEhTM7nI3LVgZ0V36RsRl6e5_eQa"
+    secret = "vzvjhBJIgathAAnVuEGU9KzCXuka"
+
     data = {
         "grant_type": "client_credentials"
     }

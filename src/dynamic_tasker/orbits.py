@@ -1,9 +1,10 @@
 import numpy as np
 import datetime
-from constants import Constants
 from collections import namedtuple
-from rotations import *
 from typing import Union
+
+from dynamic_tasker.constants import Constants
+from dynamic_tasker.rotations import *
 
 def latlong2ecef(latlong):
     lat_deg, lon_deg = latlong

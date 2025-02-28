@@ -2,11 +2,11 @@ import numpy as np
 import datetime
 import re
 from pyscipopt import Model, quicksum
-
 from dataclasses import dataclass
 from typing import List, Callable
-from access import Request
-from orbits import Keplerian
+
+from dynamic_tasker.access import Request
+from dynamic_tasker.orbits import Keplerian
 
 @dataclass
 class Spacecraft:

@@ -4,9 +4,9 @@ import itertools
 from tqdm import tqdm
 
 from collections import namedtuple
-from orbits import *
-from vector import *
-from spacecraft import *
+from dynamic_tasker.orbits import *
+from dynamic_tasker.vector import *
+from dynamic_tasker.spacecraft import *
 
 class Request:
     def __init__(self, id, lat, long, name, utility=1):
