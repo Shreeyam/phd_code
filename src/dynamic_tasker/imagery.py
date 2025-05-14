@@ -15,8 +15,10 @@ except ImportError:
     pass
 import re
 import pyproj
+from pathlib import Path
 
 dateformat = "%Y-%m-%d_%H%M%S"
+data_dir = Path(__file__).resolve().parent.parent.parent / "data"
 
 image_sources = {
     "goes_west": {
@@ -80,7 +82,7 @@ def download_goes_image(time: datetime, url, product, savefile, causal=True):
     response.raise_for_status()  
 
     # Save the file
-    with open(f"../data/products/{savefile}.nc", "wb") as f:
+    with open(os.path.join(data_dir, f"products/{savefile}.nc"), "wb") as f:
         f.write(response.content)
 
 def download_goes_east_image(time: datetime):
@@ -123,7 +125,7 @@ def download_himawari_image(time: datetime, url=image_sources["himawari"]["url"]
     response.raise_for_status()
 
     # Save the file
-    with open(f"../data/products/{savefile}.nc", "wb") as f:
+    with open(os.path.join(data_dir, f"products/{savefile}.nc"), "wb") as f:
         f.write(response.content)
 
 MeteosatAuthToken = namedtuple("MeteosatAuthToken", ["token", "expires"])
@@ -170,7 +172,7 @@ def list_meteosat_images(auth_token: MeteosatAuthToken):
     # url = 
     pass
 
-def download_meteosat_image(url, auth_token: MeteosatAuthToken, time, product="zds", tmp_folder="../data/tmp", products_folder="../data/products", causal=True):
+def download_meteosat_image(url, auth_token: MeteosatAuthToken, time, product="zds", tmp_folder=os.path.join(data_dir, "tmp"), products_folder=os.path.join(data_dir, "products"), causal=True):
     collection = "EO:EUM:DAT:MSG:CLM"
 
     if(product=="iodc"):
@@ -284,7 +286,8 @@ def load_bcm(filename, lazy_load=False):
     # Load the binary cloud mask file
     # Get pure filename
     pure_filename = os.path.basename(filename)
-    if(lazy_load and not os.path.exists(filename)):
+    full_filename = os.path.join(data_dir, "products", filename)
+    if(lazy_load and not os.path.exists(full_filename)):
         # Extract the date from the filename
         date = datetime.datetime.strptime("_".join(pure_filename.split(".")[0].split("_")[-2:]), dateformat)
         image_source = "_".join(pure_filename.split("_")[:-2])
@@ -294,7 +297,7 @@ def load_bcm(filename, lazy_load=False):
         # Fall through to loading step
 
     if(pure_filename.startswith("goes")):
-        ds = xr.open_dataset(filename)
+        ds = xr.open_dataset(full_filename)
         data = ds['BCM']
 
         proj_info = ds['goes_imager_projection'].attrs
@@ -317,7 +320,7 @@ def load_bcm(filename, lazy_load=False):
         return data.to_numpy(), lat, lon
     
     elif(pure_filename.startswith("meteosat")):
-        grbs = pygrib.open(filename)
+        grbs = pygrib.open(full_filename)
         data = grbs[1].values
         lat = grbs[1].latitudes.reshape((3712, 3712))
         lon = grbs[1].longitudes.reshape((3712, 3712))
@@ -333,7 +336,7 @@ def load_bcm(filename, lazy_load=False):
         return data[::-1, ::-1], lat, lon
     
     elif(pure_filename.startswith("himawari")):
-        ds = xr.open_dataset(filename)
+        ds = xr.open_dataset(full_filename)
         data = ds['CloudMaskBinary'].values
         lat = ds["Latitude"].values
         lon = ds["Longitude"].values
@@ -373,7 +376,7 @@ def derive_global_bcm(time, all_data=None, N_lat=1000, N_lon=3000, max_lat=60):
     points = np.stack([lats.flatten(), lons.flatten()], axis=1)
 
     if(all_data is None):
-        all_data = [load_bcm(f"../data/products/{x}_{time.strftime(dateformat)}.{'grb' if x.startswith('meteosat') else 'nc'}", lazy_load=True) for x in image_sources.keys()]
+        all_data = [load_bcm(os.path.join(data_dir, f"products/{x}_{time.strftime(dateformat)}.{'grb' if x.startswith('meteosat') else 'nc'}"), lazy_load=True) for x in image_sources.keys()]
 
     # Sample all points...
     mask = sample_global_bcm(all_data, points).reshape(lats.shape)
@@ -382,9 +385,10 @@ def derive_global_bcm(time, all_data=None, N_lat=1000, N_lon=3000, max_lat=60):
 
 def load_global_bcm(time, N_lat=1000, N_lon=3000):
     # First check if the derived product exists
-    if(os.path.exists(f"../data/derived/bcm_{time.strftime(dateformat)}.npz")):
+    filename = os.path.join(data_dir, f"derived/bcm_{time.strftime(dateformat)}.npz")
+    if(os.path.exists(filename)):
         # Load the derived product
-        ds = np.load(f"../data/derived/bcm_{time.strftime(dateformat)}.npz")
+        ds = np.load(filename)
         data = ds['BCM']
         lats = ds['Latitude']
         lons = ds['Longitude']
@@ -394,6 +398,6 @@ def load_global_bcm(time, N_lat=1000, N_lon=3000):
         # Load the original products
         data, lats, lons = derive_global_bcm(time, None, N_lat, N_lon)
         # Save the derived product
-        np.savez(f"../data/derived/bcm_{time.strftime(dateformat)}", BCM=data, Latitude=lats, Longitude=lons)
+        np.savez(filename, BCM=data, Latitude=lats, Longitude=lons)
         return data, lats, lons
     

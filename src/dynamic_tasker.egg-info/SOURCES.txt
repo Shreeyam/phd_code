@@ -8,7 +8,6 @@ src/dynamic_tasker/cameras.py
 src/dynamic_tasker/constants.py
 src/dynamic_tasker/dynamics.py
 src/dynamic_tasker/imagery.py
-src/dynamic_tasker/linear_dynamics.py
 src/dynamic_tasker/orbits.py
 src/dynamic_tasker/rotations.py
 src/dynamic_tasker/schedulers.py

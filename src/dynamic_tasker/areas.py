@@ -107,39 +107,6 @@ def are_planes_equal(p1, p2, tol=1e-9):
     return (np.allclose(p1["n"], p2["n"], atol=tol) and
             np.isclose(p1["d"],  p2["d"], atol=tol))
 
-def build_edges(vertices, planes, eps=1e-9):
-    # Map each vertex to the set of planes it lies in
-    incident = [ {k for k,p in enumerate(planes)
-                  if abs(np.dot(p["n"], v) - p["d"]) <= eps}
-                 for v in vertices ]
-
-    # Two vertices are neighbours iff they share exactly two planes
-    neighbours = {i: [] for i in range(len(vertices))}
-    for i,j in combinations(range(len(vertices)), 2):
-        common = incident[i] & incident[j]
-        if len(common) == 2:
-            neighbours[i].append(j)
-            neighbours[j].append(i)
-
-    # Walk the boundary once to get the proper CCW order
-    order   = []
-    edge_pi = []          # plane‐index per edge
-    cur     = 0           # start anywhere
-    prev    = None
-    while True:
-        order.append(cur)
-        nxts = neighbours[cur]
-        if prev is not None:
-            nxts = [n for n in nxts if n != prev]   # don’t go back
-        if not nxts:
-            break
-        nxt        = nxts[0]                       # only one choice now
-        common_pl  = incident[cur] & incident[nxt]
-        edge_pi.append( next(iter(common_pl)) )
-        prev, cur = cur, nxt
-        if cur == order[0]:
-            break
-    return order, edge_pi
 
 def vertex_set_from_planes(planes, interior_pt=None):
     # Start first by calculating all intersections of the planes
@@ -196,9 +163,12 @@ def vertex_set_from_planes(planes, interior_pt=None):
     # centre = normalize(np.mean(vertices_tight, axis=0))
     # choose an arbitrary in‑plane x‑axis
     centre = normalize(np.mean(vertices_tight, axis=0)) if interior_pt is None else normalize(interior_pt)
-    x0 = normalize(np.cross([0, 0, 1], centre))
+    x0 = (np.cross([1, 0, 0], centre))
     if np.linalg.norm(x0) < EPS:               # centre ≈ pole
         x0 = np.array([1, 0, 0])
+    else:
+        x0 = normalize(x0)
+    
     y0 = np.cross(centre, x0)
 
     angles = [np.arctan2(np.dot(y0, v), np.dot(x0, v)) for v in vertices_tight]
@@ -232,7 +202,6 @@ def vertex_set_from_planes(planes, interior_pt=None):
     
     # planes_used.append(plane_final[-1])
     # edge_plane_indices.append([i for i, p in enumerate(planes) if are_planes_equal(p, plane_final[-1])][0])
-
     edge_plane_indices = []
     for i in range(len(vertices_sorted)):
         v_cur, v_nxt = vertices_sorted[i], vertices_sorted[(i+1) % len(vertices_sorted)]

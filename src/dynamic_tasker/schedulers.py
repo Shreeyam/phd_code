@@ -1,12 +1,15 @@
-import numpy as np
 import datetime
 import re
+import os
+import numpy as np
 from pyscipopt import Model, quicksum
 from dataclasses import dataclass
 from typing import List, Callable
-
+from pathlib import Path
 from dynamic_tasker.access import Request
 from dynamic_tasker.orbits import Keplerian
+
+data_dir = Path(__file__).resolve().parent.parent.parent / "data"
 
 @dataclass
 class Spacecraft:
@@ -22,7 +25,7 @@ class Scenario:
 def load_worldcities(n=1000, random_subsample=False):
     accesses = [] 
     # Open the CSV and process the lines
-    with open('../../data/worldcities/worldcities.csv', 'r', encoding='utf8') as f:
+    with open(os.path.join(data_dir, 'worldcities/worldcities.csv'), 'r', encoding='utf8') as f:
         f.readline()  # Skip the header line
         i = 0
         for line in f:
@@ -80,7 +83,6 @@ def milp_schedule(accesses, requests, agility):
     return schedule
 
 
-
 def no_repair(tasks, requests, agility):
     return tasks
 
@@ -128,6 +130,24 @@ def greedy_schedulerepair(schedule, total_tasks, requests, occluded_mask, agilit
         i += 1
 
     return schedule_copy
+
+def slew_angle(t, t_next, angle_origin, angle_dest, agility):
+    t_total = agility(angle_dest - angle_origin)
+    t_s = agility(0)
+    t_norm = (t_total - t_next + t)/(t_total - t_s)
+    theta = angle_dest - angle_origin
+    t_untilnext = t_next - t
+    if (t_untilnext <= t_s):
+        return angle_dest
+    elif (t_untilnext >= t_total):
+        return angle_origin
+    elif (t_norm <= 0.5):
+        return 2 * theta * t_norm**2 + angle_origin
+    else:
+        return theta * (1 - 2 * (1 - t_norm)**2) + angle_origin 
+
+def temporal_slew_angle(t_now, prev, next, agility):
+    return slew_angle(t_now, next.time, prev.angle, next.angle, agility)
 
 def eval_scenario(scenario, initial_scheduler, repair_scheduler):
     pass

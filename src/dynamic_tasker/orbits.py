@@ -182,8 +182,17 @@ def propagate_orbit(orbit: Keplerian, time: Union[float, datetime.datetime, date
 def v_orb(h):
     return np.sqrt(Constants.mu / (h + Constants.R_E))
 
+def t_orb(elements: Keplerian):
+    return 2 * np.pi * np.sqrt((elements.a**3) / Constants.mu)
+
 def horizon_distance(elements):
     return np.sqrt((elements.a)**2 - Constants.R_E**2)
+
+def horizon_angle(elements):
+    return np.arcsin(Constants.R_E / elements.a)
+
+def horizon_spherical_angle(elements):
+    return np.arccos(Constants.R_E / elements.a)
 
 def intersect_ray_sphere(P, u, x0, r):
     """
