@@ -191,6 +191,9 @@ def horizon_distance(elements):
 def horizon_angle(elements):
     return np.arcsin(Constants.R_E / elements.a)
 
+def horizon_time(elements):
+    return horizon_distance(elements) / v_orb(elements.a)
+
 def horizon_spherical_angle(elements):
     return np.arccos(Constants.R_E / elements.a)
 

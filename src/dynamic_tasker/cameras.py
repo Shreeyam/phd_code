@@ -1,7 +1,7 @@
 import numpy as np
 from dynamic_tasker.orbits import *
 from dynamic_tasker.rotations import *
-
+from dynamic_tasker.vector import *
 # Origin at bottom left corner
 def get_intrinsics(f, c_x, c_y):
     K = np.hstack([np.array([-f, 0, c_x, 0, f, c_y, 0, 0, 1]).reshape(3,3), np.zeros((3,1))])
@@ -97,9 +97,13 @@ def project_from_orbit(points, K, orbit, time, roll_angle=0, pitch_angle=15):
     R_t = np.linalg.inv(R_t)
     R_t = R_t[[2, 1, 0], :]
     P = get_camera_matrix(K, R_t, r)
-    projected_points = project(P, points, False)
 
-    return projected_points
+    # Check if points is not empty
+    if(points.size > 0):
+        projected_points = project(P, points, False)
+        return projected_points
+    else:
+        return []
 
 def unproject_from_orbit(img_points, depth, K, orbit, time, roll_angle=0, pitch_angle=15):
     """
@@ -178,3 +182,37 @@ def unproject_from_orbit(img_points, depth, K, orbit, time, roll_angle=0, pitch_
     world_points = unproject(P, img_points, depth)
     
     return world_points
+
+def ecef2pitchroll(pos_ecef, v_ecef, vec):
+    Up = pos_ecef / np.linalg.norm(pos_ecef)
+
+    Along = v_ecef / np.linalg.norm(v_ecef)
+    Right = np.cross(Along, Up)
+    Right = Right / np.linalg.norm(Right)
+
+    Along = np.cross(Up, Right)
+    Along = Along / np.linalg.norm(Along)
+
+    R_ecef_to_body = np.vstack([Right, Along, Up])
+
+    v_local = R_ecef_to_body @ vec
+    v_local_norm = v_local / np.linalg.norm(v_local)  # normalize for angle calculations
+
+    pitch = -np.arctan2(v_local_norm[1], v_local_norm[2])
+    roll  = -np.arctan2(v_local_norm[0], v_local_norm[2])
+
+    pitch_deg = np.degrees(pitch) * 1
+    roll_deg  = np.degrees(roll)
+
+    return pitch_deg, roll_deg
+
+def project_in_box(pitch_deg, roll_deg, orbit, t, accesses, points, width, height, K):
+    # First, project and see if it's in the box
+    points_eci = np.array([ecef2eci(p, t) for p in points])
+    ecef_projected_dir = project_from_orbit(points_eci, K, orbit, t, pitch_angle=pitch_deg, roll_angle=roll_deg)
+    # Figure out how many are in the box
+    in_box_idx = np.array([i for i, p in enumerate(ecef_projected_dir) if p[0] >= 0 and p[0] <= width and p[1] >= 0 and p[1] <= height])
+    return [a for i, a in enumerate(accesses) if i in in_box_idx], in_box_idx
+
+def filter_accesses_horizon(orbit, time, accesses, pos_ecef):
+    return [(r, a, t, access, idx) for r, a, t, access, idx in accesses if t >= time and t <= time + datetime.timedelta(hours=1) and dist(pos_ecef, r) < horizon_distance(orbit) and a <= 30]
