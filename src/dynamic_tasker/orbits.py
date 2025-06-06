@@ -197,7 +197,7 @@ def horizon_time(elements):
 def horizon_spherical_angle(elements):
     return np.arccos(Constants.R_E / elements.a)
 
-def intersect_ray_sphere(P, u, x0, r):
+def intersect_ray_sphere(P, u, x0, r, horizon_snap=False):
     """
     Determines the intersections of a ray with a sphere.
     
@@ -206,7 +206,8 @@ def intersect_ray_sphere(P, u, x0, r):
     u (numpy array): The direction of the ray (3D vector).
     x0 (numpy array): The center of the sphere (3D vector).
     r (float): The radius of the sphere.
-    
+    horizon_snap (bool): If True, the ray will be snapped to the horizon if it does not intersect the sphere.
+
     Returns:
     t1, t2 (float, float): The parameter values at which the intersections occur.
     None if there are no intersections.
@@ -224,11 +225,25 @@ def intersect_ray_sphere(P, u, x0, r):
     
     if discriminant < 0:
         # No intersection
-        return None
+        if(horizon_snap):
+            # Find the closest point on the ray to the sphere center
+            t_closest = -np.dot(P - x0, u)
+            closest_point = P + t_closest * u
+            
+            # Project this point onto the sphere surface (horizon point)
+            direction_to_surface = closest_point - x0
+            direction_normalized = direction_to_surface / np.linalg.norm(direction_to_surface)
+            horizon_point = x0 + r * direction_normalized
+            
+            # Return as 4-tuple with same point twice and the calculated t value
+            return (horizon_point, horizon_point, t_closest, t_closest)
+        else:
+            return None
     elif discriminant == 0:
         # One intersection (tangent)
         t = -B / (2*A)
-        return (P + t * u,)
+        point = P + t * u
+        return (point, point, t, t)
     else:
         # Two intersections
         sqrt_disc = np.sqrt(discriminant)
@@ -236,8 +251,8 @@ def intersect_ray_sphere(P, u, x0, r):
         t2 = (-B - sqrt_disc) / (2*A)
         return (P + t1 * u, P + t2 * u, t1, t2)
     
-def earth_line_intersection(P, u):
-    p = intersect_ray_sphere(P, u, np.array([0, 0, 0]), Constants.R_E)
+def earth_line_intersection(P, u, horizon_snap=False):
+    p = intersect_ray_sphere(P, u, np.array([0, 0, 0]), Constants.R_E, horizon_snap)
     if(p is None):
         return p
     else:

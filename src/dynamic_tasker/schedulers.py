@@ -59,21 +59,28 @@ def greedy_schedule(accesses, requests, agility):
 
     return schedule
 
-def milp_schedule(accesses, requests, agility):
+def milp_schedule(accesses, requests, agility, force_in_schedule=None):
     model = Model("Scheduler")
     x = {}
+    # Map of index to requestid
+    idx_map = []
+
     for i, a in enumerate(accesses):
         x[i] = model.addVar(vtype="B", name=f"x_{a.requestid}_{a.time}")
-    
-    # Add constraints based on agility
+        if(force_in_schedule is not None and a in force_in_schedule):
+            model.addCons(x[i] == 1)
+
+        idx_map.append(a.requestid)
+
+    # Add constraints based on agility and repetition
     for i in range(len(accesses) - 1):
         for j in range(i + 1, len(accesses)):
-            if(accesses[j].time < datetime.timedelta(seconds=agility(accesses[j].angle - accesses[i].angle)) + accesses[i].time):
+            if(idx_map[i] == idx_map[j] or accesses[j].time < datetime.timedelta(seconds=agility(accesses[j].angle - accesses[i].angle)) + accesses[i].time):
                 model.addCons(x[i] + x[j] <= 1)
 
     # Add objective
     model.setObjective(quicksum(x[i] * a.utility for i, a in enumerate(accesses)), "maximize")
-    model.optimize()
+    res = model.optimize()
     sol = model.getBestSol()
     schedule = []
     for i, a in enumerate(accesses):
@@ -82,6 +89,49 @@ def milp_schedule(accesses, requests, agility):
 
     return schedule
 
+# Constellation scheduler
+# No forces in for now
+def milp_schedule_constellation(accesses_all, requests, agility):
+    # Get the number of satellites
+    n_satellites = len(accesses_all)
+    model = Model("Scheduler_Constellation")
+    idx_map = []
+
+    x = {}
+    current_idx = 0
+    for j, accesses in enumerate(accesses_all):
+        for a in accesses:
+            x[current_idx] = model.addVar(vtype="B", name=f"x_sat{j}_{a.requestid}_{a.time}")
+            current_idx += 1
+
+            idx_map.append(a.requestid)
+
+    # Add constraints based on agility
+    for k in range(len(accesses_all)):
+        start_idx = np.sum([len(accesses_all[i]) for i in range(k)])
+        for i in range(len(accesses_all[k]) - 1):
+            for j in range(i + 1, len(accesses_all[k])):
+                if(accesses_all[k][j].time < datetime.timedelta(seconds=agility(accesses_all[k][j].angle - accesses_all[k][i].angle)) + accesses_all[k][i].time):
+                    model.addCons(x[start_idx + i] + x[start_idx + j] <= 1)
+
+    # Add constraints based on repetition
+    for i in range(len(idx_map)):
+        for j in range(i + 1, len(idx_map)):
+            if(idx_map[i] == idx_map[j]):
+                model.addCons(x[i] + x[j] <= 1)
+
+    # Add objective
+    model.setObjective(quicksum(x[i] * a.utility for i in range(len(idx_map))), "maximize")
+    res = model.optimize()
+    sol = model.getBestSol()
+    schedule = [[] for _ in range(len(accesses_all))]
+    for k in range(len(accesses_all)):    
+        start_idx = int(np.sum([len(accesses_all[i]) for i in range(k)]))
+        for i in range(len(accesses_all[k])):
+            if(sol[x[start_idx + i]] == 1):
+                schedule[k].append(accesses_all[k][i])
+
+    return schedule
 
 def no_repair(tasks, requests, agility):
     return tasks

@@ -216,3 +216,21 @@ def project_in_box(pitch_deg, roll_deg, orbit, t, accesses, points, width, heigh
 
 def filter_accesses_horizon(orbit, time, accesses, pos_ecef):
     return [(r, a, t, access, idx) for r, a, t, access, idx in accesses if t >= time and t <= time + datetime.timedelta(hours=1) and dist(pos_ecef, r) < horizon_distance(orbit) and a <= 30]
+
+def create_box(width, height, points_per_edge=0):
+    # Create the base box corners
+    corners = np.array([[0, 0], [width, 0], [width, height], [0, height]])
+    
+    # Create high resolution edges
+    edges = []
+    for i in range(4):
+        start = corners[i]
+        end = corners[(i + 1) % 4]
+        # Generate evenly spaced points along each edge
+        edge_points = np.linspace(start, end, points_per_edge)
+        edges.append(edge_points[:-1])  # Exclude last point to avoid duplicates
+    
+    # Combine all edges and add the closing point
+    high_res_box = np.vstack(edges + [corners[0]])
+    return high_res_box
+    
