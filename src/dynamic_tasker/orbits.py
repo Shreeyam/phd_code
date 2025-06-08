@@ -199,57 +199,87 @@ def horizon_spherical_angle(elements):
 
 def intersect_ray_sphere(P, u, x0, r, horizon_snap=False):
     """
-    Determines the intersections of a ray with a sphere.
-    
-    Parameters:
-    P (numpy array): The starting point of the ray (3D vector).
-    u (numpy array): The direction of the ray (3D vector).
-    x0 (numpy array): The center of the sphere (3D vector).
-    r (float): The radius of the sphere.
-    horizon_snap (bool): If True, the ray will be snapped to the horizon if it does not intersect the sphere.
+    Intersect (or tangent-snap) a ray P + t u with a sphere of centre x0, radius r.
 
-    Returns:
-    t1, t2 (float, float): The parameter values at which the intersections occur.
-    None if there are no intersections.
+    Returns
+    -------
+    (pt1, pt2, t1, t2)
+        • Two 3-D points (may be the same) and their parameter values along the ray.
+        • If the ray does not meet the sphere and horizon_snap is False → None.
+        • If horizon_snap is True and there is no intersection → the tangent
+          point is returned twice, with the appropriate single parameter t.
     """
-    # Normalize direction vector
-    u = u / np.linalg.norm(u)
-    
-    # Compute coefficients of the quadratic equation
-    A = np.dot(u, u)
-    B = 2 * np.dot(u, P - x0)
-    C = np.dot(P - x0, P - x0) - r**2
-    
-    # Compute the discriminant
-    discriminant = B**2 - 4*A*C
-    
-    if discriminant < 0:
-        # No intersection
-        if(horizon_snap):
-            # Find the closest point on the ray to the sphere center
-            t_closest = -np.dot(P - x0, u)
-            closest_point = P + t_closest * u
-            
-            # Project this point onto the sphere surface (horizon point)
-            direction_to_surface = closest_point - x0
-            direction_normalized = direction_to_surface / np.linalg.norm(direction_to_surface)
-            horizon_point = x0 + r * direction_normalized
-            
-            # Return as 4-tuple with same point twice and the calculated t value
-            return (horizon_point, horizon_point, t_closest, t_closest)
-        else:
-            return None
-    elif discriminant == 0:
-        # One intersection (tangent)
-        t = -B / (2*A)
-        point = P + t * u
-        return (point, point, t, t)
-    else:
-        # Two intersections
-        sqrt_disc = np.sqrt(discriminant)
+    P   = np.asarray(P, dtype=float)
+    u   = np.asarray(u, dtype=float)
+    x0  = np.asarray(x0, dtype=float)
+    if np.allclose(u, 0):
+        raise ValueError("Direction vector u must be non-zero")
+
+    # Normalise the direction so that 't' is in metres (or whatever units you use)
+    u   = u / np.linalg.norm(u)
+
+    # Quadratic coefficients for |P + t u – x0|² = r²
+    d   = P - x0
+    A   = 1.0                            # because u is unit
+    B   = 2.0 * np.dot(u, d)
+    C   = np.dot(d, d) - r*r
+    disc = B*B - 4*A*C
+
+    # ---------------- regular intersection cases ----------------
+    if disc > 0:                         # two points
+        sqrt_disc = np.sqrt(disc)
         t1 = (-B + sqrt_disc) / (2*A)
         t2 = (-B - sqrt_disc) / (2*A)
-        return (P + t1 * u, P + t2 * u, t1, t2)
+        return (P + t1*u, P + t2*u, t1, t2)
+
+    if np.isclose(disc, 0):              # exactly tangent already
+        t = -B / (2*A)
+        pt = P + t*u
+        return (pt, pt, t, t)
+
+    # ---------------- no hit, maybe horizon-snap? ----------------
+    if not horizon_snap:
+        return None
+
+    # ---- compute tangent point in the plane spanned by d and u ----
+    L2 = np.dot(d, d)
+    if L2 <= r*r:
+        # P happens to lie on or inside the sphere – snapping undefined
+        return None
+
+    # Plane normal and an in-plane unit vector perpendicular to d
+    n = np.cross(u, d)
+    if np.linalg.norm(n) < 1e-12:        # u ‖ d  ⇒  choose any perpendicular axis
+        n = np.cross(d, np.array([1.0, 0.0, 0.0]))
+        if np.linalg.norm(n) < 1e-12:    # unlucky – d happens to be x-axis
+            n = np.cross(d, np.array([0.0, 1.0, 0.0]))
+    k = np.cross(n, d)
+    k_hat = k / np.linalg.norm(k)
+
+    L    = np.sqrt(L2)
+    delta = np.sqrt(L2 - r*r)
+
+    # Two candidate tangent points
+    T1 = x0 + (r*r / L2) * d + (r * delta / L) * k_hat
+    T2 = x0 + (r*r / L2) * d - (r * delta / L) * k_hat
+
+    # Choose the one that lies "forward" along u (positive dot)
+    dir1 = (T1 - P)
+    dir2 = (T2 - P)
+    dot1 = -np.dot(dir1, u)
+    dot2 = -np.dot(dir2, u)
+
+    if dot1 >= 0 and dot2 < 0:
+        T = T1; t = -dot1                 # u is unit, so t = proj length
+    elif dot2 >= 0 and dot1 < 0:
+        T = T2; t = -dot2
+    else:
+        # Both are forward (rare) – pick the smaller angular offset
+        ang1 = np.arccos(dot1 / np.linalg.norm(dir1))
+        ang2 = np.arccos(dot2 / np.linalg.norm(dir2))
+        T, t = (T1, dot1) if ang1 < ang2 else (T2, dot2)
+
+    return (T, T, t, t)
     
 def earth_line_intersection(P, u, horizon_snap=False):
     p = intersect_ray_sphere(P, u, np.array([0, 0, 0]), Constants.R_E, horizon_snap)
