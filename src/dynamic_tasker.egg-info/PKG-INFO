@@ -1,0 +1,16 @@
+Metadata-Version: 2.4
+Name: dynamic_tasker
+Version: 0.1.0
+Summary: Codebase for my dynamic tasking PhD
+Author-email: Shreeyam Kacker <shreeyamkacker@gmail.com>
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: numpy
+Requires-Dist: matplotlib
+Dynamic: license-file
+
+
+
+# Installation
+
+As this package uses a significant amount of data from satellite data APIs, there 

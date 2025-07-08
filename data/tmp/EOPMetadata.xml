@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<eum:EarthObservation xmlns:gml="http://www.opengis.net/gml/3.2"
+                      xmlns:eop="http://www.opengis.net/eop/2.1"
+                      xmlns:om="http://www.opengis.net/om/2.0"
+                      xmlns:ows="http://www.opengis.net/ows/2.0"
+                      xmlns:xlink="http://www.w3.org/1999/xlink"
+                      xmlns:eu="http://www.eumetsat.int/sentinel"
+                      xmlns:eum="http://www.eumetsat.int/eop/1.0"
+                      gml:id="idSIPMetadata_2_1">
+   <om:phenomenonTime>
+      <gml:TimeInstant gml:id="phenomenonTime">
+         <gml:timePosition>2025-01-02T11:30:00.000Z</gml:timePosition>
+      </gml:TimeInstant>
+   </om:phenomenonTime>
+   <om:resultTime>
+      <gml:TimeInstant gml:id="resultTime">
+         <gml:timePosition>2025-01-02T11:30:00.000Z</gml:timePosition>
+      </gml:TimeInstant>
+   </om:resultTime>
+   <om:procedure>
+      <eop:EarthObservationEquipment gml:id="procedure">
+         <eop:platform>
+            <eop:Platform>
+               <eop:shortName>MSG2</eop:shortName>
+               <eop:orbitType>GEO</eop:orbitType>
+            </eop:Platform>
+         </eop:platform>
+         <eop:instrument>
+            <eop:Instrument>
+               <eop:shortName>SEVIRI</eop:shortName>
+            </eop:Instrument>
+         </eop:instrument>
+         <eop:sensor>
+            <eop:Sensor>
+               <eop:operationalMode>FES</eop:operationalMode>
+            </eop:Sensor>
+         </eop:sensor>
+      </eop:EarthObservationEquipment>
+   </om:procedure>
+   <om:observedProperty nilReason="inapplicable"/>
+   <om:featureOfInterest>
+      <eop:Footprint gml:id="footprint">
+         <eop:multiExtentOf nilReason="inapplicable"/>
+         <eop:centerOf>
+            <gml:Point gml:id="centerOf" srsName="EPSG:4326">
+               <gml:pos>0 45.5</gml:pos>
+            </gml:Point>
+         </eop:centerOf>
+      </eop:Footprint>
+   </om:featureOfInterest>
+   <om:result>
+      <eop:EarthObservationResult gml:id="result">
+         <eop:product>
+            <eop:ProductInformation>
+               <eop:fileName>
+                  <ows:ServiceReference xlink:href="MSG2-SEVI-MSGCLMK-0100-0100-20250102113000.000000000Z-NA">
+                     <ows:Identifier>MSG2-SEVI-MSGCLMK-0100-0100-20250102113000.000000000Z-NA</ows:Identifier>
+                     <ows:RequestMessage/>
+                  </ows:ServiceReference>
+               </eop:fileName>
+               <eop:version>1</eop:version>
+               <eop:size uom="KB">3369</eop:size>
+               <eop:timeliness>NOMINAL</eop:timeliness>
+            </eop:ProductInformation>
+         </eop:product>
+      </eop:EarthObservationResult>
+   </om:result>
+   <eop:metaDataProperty>
+      <eum:EarthObservationMetaData>
+         <eop:identifier>MSG2-SEVI-MSGCLMK-0100-0100-20250102113000.000000000Z-NA</eop:identifier>
+         <eop:parentIdentifier>EO:EUM:DAT:MSG:CLM-IODC</eop:parentIdentifier>
+         <eop:acquisitionType>NOMINAL</eop:acquisitionType>
+         <eop:acquisitionSubType>O</eop:acquisitionSubType>
+         <eop:productType>MSGCLMK</eop:productType>
+         <eop:status>ACQUIRED</eop:status>
+         <eop:downlinkedTo>
+            <eop:DownlinkInformation>
+               <eop:acquisitionStation codeSpace="urn:eop:EUM:stationCode">PGS</eop:acquisitionStation>
+               <eop:acquisitionDate>2025-01-02T11:30:00.000Z</eop:acquisitionDate>
+            </eop:DownlinkInformation>
+         </eop:downlinkedTo>
+         <eop:productQualityStatus>NOMINAL</eop:productQualityStatus>
+         <eop:processing>
+            <eop:ProcessingInformation>
+               <eop:processingCenter>EUM</eop:processingCenter>
+               <eop:processingDate>2025-01-02T11:45:00.000Z</eop:processingDate>
+               <eop:methodVersion>0100</eop:methodVersion>
+               <eop:processorName>MPEF</eop:processorName>
+               <eop:processorVersion>NA</eop:processorVersion>
+               <eop:nativeProductFormat>GRIB2</eop:nativeProductFormat>
+               <eop:processingMode>N</eop:processingMode>
+            </eop:ProcessingInformation>
+         </eop:processing>
+         <eum:granuleType>DP</eum:granuleType>
+         <eum:processingLevel>20</eum:processingLevel>
+      </eum:EarthObservationMetaData>
+   </eop:metaDataProperty>
+</eum:EarthObservation>

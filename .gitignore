@@ -1,0 +1,18 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints
+*.npz
+*.png
+*.mp4
+*.pdf
+*.blend
+*.blend1
+*.gif
+*.zip
+*.nc
+*.grb
+.vscode/**
+./data/tmp/**
+*tfevents*
