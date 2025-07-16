@@ -16,7 +16,7 @@ def get_intrinsics_from_fov(fov, width, height, axis='x'):
     else:
         raise ValueError(f"Invalid axis: {axis}")
         
-    return get_intrinsics(f, width / 2, height / 2)
+    return get_intrinsics(f, width/2, height/2)
 
 def get_extrinsics(R_t, p):
     R_q = R_t #q2mat(q)
@@ -223,10 +223,10 @@ def project_in_box(pitch_deg, roll_deg, orbit, t, accesses, points, width, heigh
     ecef_projected_dir = project_from_orbit(points_eci, K, orbit, t, pitch_angle=pitch_deg, roll_angle=roll_deg)
     # Figure out how many are in the box
     in_box_idx = np.array([i for i, p in enumerate(ecef_projected_dir) if p[0] >= 0 and p[0] <= width and p[1] >= 0 and p[1] <= height])
-    return [a for i, a in enumerate(accesses) if i in in_box_idx], in_box_idx
+    return [a for i, a in enumerate(accesses) if i in in_box_idx], in_box_idx, ecef_projected_dir
 
-def filter_accesses_horizon(orbit, time, accesses, pos_ecef):
-    return [(r, a, t, access, idx) for r, a, t, access, idx in accesses if t >= time and t <= time + datetime.timedelta(hours=1) and dist(pos_ecef, r) < horizon_distance(orbit) and a <= 30]
+def filter_accesses_horizon(orbit, time, accesses, pos_ecef, field_of_regard=30):
+    return [(r, a, t, access, idx) for r, a, t, access, idx in accesses if t >= time and t <= time + datetime.timedelta(seconds=horizon_time(orbit)) and a <= field_of_regard and a >= -field_of_regard]
 
 def create_box(width, height, points_per_edge=0):
     # Create the base box corners

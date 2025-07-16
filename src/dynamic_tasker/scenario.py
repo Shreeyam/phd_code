@@ -1,3 +1,6 @@
+import numpy as np
+import os
+import re
 from dynamic_tasker.access import Request
 from dynamic_tasker.orbits import Keplerian
 
@@ -25,5 +28,25 @@ def load_worldcities(n=1000, random_subsample=False):
     # Generate both the orbits and accesses...
     # 1. Generate the orbits
 
+# Generate random requests (size N)
+def generate_requests(N):
+    """
+    Generate N Request objects with lat/long
+    sampled uniformly over Earth's surface, using numpy.
+    """
+    # 1) sample z = sin(lat) uniformly in [-1,1]
+    z = np.random.uniform(-1.0, 1.0, size=N)
+    # 2) sample longitude angle θ uniformly in [0, 2π)
+    theta = np.random.uniform(0.0, 2*np.pi, size=N)
 
+    # convert to lat, lon in degrees
+    lat = np.degrees(np.arcsin(z))
+    lon = np.degrees(theta)
+    # shift to [–180, +180)
+    lon = np.where(lon > 180.0, lon - 360.0, lon)
 
+    # build Request instances
+    return [
+        Request(i, float(lat[i]), float(lon[i]), f"request_{i}")
+        for i in range(N)
+    ]
